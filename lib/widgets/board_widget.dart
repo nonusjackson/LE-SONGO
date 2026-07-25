@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/board.dart';
+import '../services/sound_service.dart';
 import '../theme/songo_theme.dart';
 import 'pit_widget.dart';
 
@@ -8,12 +9,16 @@ class BoardWidget extends StatefulWidget {
   final SongoBoard board;
   final List<int> playableIndices;
   final ValueChanged<int> onPitTap;
+  final SoundService? sound;
+  final int? hintPit;
 
   const BoardWidget({
     super.key,
     required this.board,
     required this.playableIndices,
     required this.onPitTap,
+    this.sound,
+    this.hintPit,
   });
 
   @override
@@ -79,6 +84,7 @@ class BoardWidgetState extends State<BoardWidget> {
       }
       if (!mounted) return;
       setState(() => _displayPits[target] += 1);
+      widget.sound?.playSeedDrop();
       await Future<void>.delayed(const Duration(milliseconds: 40));
     }
 
@@ -87,6 +93,7 @@ class BoardWidgetState extends State<BoardWidget> {
     await Future<void>.delayed(const Duration(milliseconds: 120));
 
     if (capturedPits.isNotEmpty && mounted) {
+      widget.sound?.playCapture();
       setState(() => _flashPits = capturedPits.toSet());
       await Future<void>.delayed(const Duration(milliseconds: 320));
       if (!mounted) return;
@@ -169,6 +176,7 @@ class BoardWidgetState extends State<BoardWidget> {
             seeds: _displayPits[i],
             enabled: !_locked && widget.playableIndices.contains(i),
             flashCapture: _flashPits.contains(i),
+            isHint: widget.hintPit == i,
             onTap: () => widget.onPitTap(i),
             size: pitSize,
           ),

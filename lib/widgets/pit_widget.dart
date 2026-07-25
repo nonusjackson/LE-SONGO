@@ -8,6 +8,7 @@ class PitWidget extends StatelessWidget {
   final int seeds;
   final bool enabled;
   final bool flashCapture;
+  final bool isHint;
   final VoidCallback? onTap;
   final double size;
 
@@ -16,13 +17,16 @@ class PitWidget extends StatelessWidget {
     required this.seeds,
     this.enabled = false,
     this.flashCapture = false,
+    this.isHint = false,
     this.onTap,
     this.size = 60,
   });
 
   @override
   Widget build(BuildContext context) {
-    final glowColor = flashCapture ? SongoColors.captureFlash : SongoColors.accentGold;
+    final glowColor = flashCapture
+        ? SongoColors.captureFlash
+        : (isHint ? SongoColors.hintBlue : SongoColors.accentGold);
     final showGlow = enabled || flashCapture;
 
     return GestureDetector(

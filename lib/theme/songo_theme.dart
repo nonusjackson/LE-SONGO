@@ -7,6 +7,7 @@ class SongoColors {
   static const seedBase = Color(0xFFC89B6B);
   static const accentGold = Color(0xFFD4A017);
   static const captureFlash = Color(0xFFC1652F);
+  static const hintBlue = Color(0xFF4FA6D8);
   static const background = Color(0xFFF5EAD9);
   static const surface = Color(0xFFFFF8ED);
   static const textDark = Color(0xFF2B1B12);

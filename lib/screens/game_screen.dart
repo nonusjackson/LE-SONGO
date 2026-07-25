@@ -6,6 +6,7 @@ import '../models/ai_difficulty.dart';
 import '../models/board.dart';
 import '../models/game_result.dart';
 import '../services/history_service.dart';
+import '../services/sound_service.dart';
 import '../theme/songo_theme.dart';
 import '../widgets/board_widget.dart';
 import 'rules_screen.dart';
@@ -31,12 +32,15 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   late SongoBoard _board;
   final _historyService = HistoryService();
+  final _sound = SoundService();
   late final _ai = AiPlayer(
     depth: widget.difficulty.depth,
     mistakeChance: widget.difficulty.mistakeChance,
   );
+  final _hintAi = AiPlayer(depth: 4);
   final _boardKey = GlobalKey<BoardWidgetState>();
   String? _message;
+  int? _hintPit;
   bool _gameOver = false;
   bool _aiThinking = false;
   bool _animating = false;
@@ -47,10 +51,24 @@ class _GameScreenState extends State<GameScreen> {
     _board = SongoBoard.initial();
   }
 
+  @override
+  void dispose() {
+    _sound.dispose();
+    super.dispose();
+  }
+
   bool get _isAiTurn => widget.vsAi && _board.currentPlayer == 1;
+
+  bool get _canRequestHint =>
+      !_gameOver && !_isAiTurn && !_animating && !_aiThinking;
 
   List<int> get _playableIndices =>
       _gameOver || _isAiTurn || _animating ? [] : SongoEngine.legalMoves(_board);
+
+  void _showHint() {
+    if (!_canRequestHint) return;
+    setState(() => _hintPit = _hintAi.chooseMove(_board));
+  }
 
   void _playPit(int pitIndex) {
     if (_gameOver || _isAiTurn || _animating) return;
@@ -61,7 +79,10 @@ class _GameScreenState extends State<GameScreen> {
     final order = SongoEngine.sowOrder(_board, pitIndex);
     final outcome = SongoEngine.applyMove(_board, pitIndex);
 
-    setState(() => _animating = true);
+    setState(() {
+      _animating = true;
+      _hintPit = null;
+    });
     await _boardKey.currentState?.animateMove(
       pitIndex,
       order,
@@ -98,6 +119,11 @@ class _GameScreenState extends State<GameScreen> {
 
   Future<void> _endGame(int? winner) async {
     setState(() => _gameOver = true);
+    if (winner != null) {
+      _sound.playVictory();
+    } else {
+      _sound.playEndNeutral();
+    }
     final result = GameResult(
       date: DateTime.now(),
       player0Name: widget.player0Name,
@@ -116,6 +142,7 @@ class _GameScreenState extends State<GameScreen> {
       _gameOver = false;
       _animating = false;
       _message = null;
+      _hintPit = null;
     });
   }
 
@@ -129,6 +156,11 @@ class _GameScreenState extends State<GameScreen> {
       appBar: AppBar(
         title: const Text('Songo'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.lightbulb_outline),
+            tooltip: 'Indice',
+            onPressed: _canRequestHint ? _showHint : null,
+          ),
           IconButton(
             icon: const Icon(Icons.help_outline),
             tooltip: 'Règles du jeu',
@@ -159,6 +191,8 @@ class _GameScreenState extends State<GameScreen> {
               board: _board,
               playableIndices: _playableIndices,
               onPitTap: _playPit,
+              sound: _sound,
+              hintPit: _hintPit,
             ),
             const SizedBox(height: 16),
             if (!_gameOver)
